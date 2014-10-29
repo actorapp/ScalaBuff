@@ -27,15 +27,14 @@ object ScalaBuffBuild extends Build {
 		logLevel := Level.Info
 	)
 
-	object sonatype extends PublishToSonatype(ScalaBuffBuild) {
-		def projectUrl    = "https://github.com/SandroGrzicic/ScalaBuff"
-		def developerId   = "sandrogrzicic"
-		def developerName = "Sandro Grzicic"
-	}
-
 	override lazy val settings = super.settings ++ buildSettings
 
 	lazy val defaultSettings = Defaults.defaultSettings ++ Seq(
+    bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("actor"),
+
+    bintray.Keys.repository in bintray.Keys.bintray := "maven",
+    
+    licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
 
 		resolvers ++= Seq(
 			"Akka Maven Repository" at "http://akka.io/repository",
@@ -81,7 +80,7 @@ object ScalaBuffBuild extends Build {
 		compileOrder := CompileOrder.Mixed,
 		
 		credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-	) ++ sonatype.settings
+	) ++ bintray.Plugin.bintraySettings
 
 	lazy val compilerProject = Project(
 		id = "scalabuff-compiler",
@@ -102,54 +101,4 @@ object ScalaBuffBuild extends Build {
 
   override val rootProject = Option(compilerProject)
 
-}
-
-/** 
- * Source:  https://github.com/paulp/scala-improving/blob/master/project/Publishing.scala
- * License: https://github.com/paulp/scala-improving/blob/master/LICENSE.txt
- */
-abstract class PublishToSonatype(build: Build) {
-  import build._
-
-  val ossSnapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
-  val ossStaging   = "Sonatype OSS Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-
-  def projectUrl: String
-  def developerId: String
-  def developerName: String
-  
-  def licenseName         = "Apache"
-  def licenseUrl          = "http://www.apache.org/licenses/LICENSE-2.0"
-  def licenseDistribution = "repo"
-  def scmUrl              = projectUrl
-  def scmConnection       = "scm:git:" + scmUrl
-
-  def generatePomExtra(scalaVersion: String): xml.NodeSeq = {
-    <url>{ projectUrl }</url>
-      <licenses>
-        <license>
-          <name>{ licenseName }</name>
-          <url>{ licenseUrl }</url>
-          <distribution>{ licenseDistribution }</distribution>
-        </license>
-      </licenses>
-    <scm>
-      <url>{ scmUrl }</url>
-      <connection>{ scmConnection }</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>{ developerId }</id>
-        <name>{ developerName }</name>
-      </developer>
-    </developers>
-  }
-
-  def settings: Seq[Setting[_]] = Seq(
-    publishMavenStyle := true,
-    publishTo <<= version((v: String) => Some( if (v.trim endsWith "SNAPSHOT") ossSnapshots else ossStaging)),
-    publishArtifact in Test := false,
-    pomIncludeRepository := (_ => false),
-    pomExtra <<= (scalaVersion)(generatePomExtra)
-  )
 }
